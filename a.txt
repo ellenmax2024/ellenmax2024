@@ -1,0 +1,43 @@
+  key_word_args = copy.deepcopy(locals())
+    def build_ssh_action_decorator(func):
+        @wraps(func)
+        def build_ssh_action_wrapper(*args, **kwargs):
+            # _host_name = replace_object_description_with_paramters(hostname,kwargs)
+            # _user_name = replace_object_description_with_paramters(username,kwargs)
+            # _password = replace_object_description_with_paramters(password,kwargs)
+            if hasattr(hostname, '__call__'):
+                _host_name = replace_object_description_with_paramters(hostname(), kwargs)
+            else:
+                _host_name = replace_object_description_with_paramters(hostname, kwargs)
+            if hasattr(username, '__call__'):
+                _user_name = replace_object_description_with_paramters(username(),kwargs)
+            else:
+                _user_name = replace_object_description_with_paramters(username,kwargs)
+            if hasattr(password, '__call__'):
+                _password = replace_object_description_with_paramters(password(),kwargs)
+            else:
+                _password = replace_object_description_with_paramters(password,kwargs)
+            logger.info("_host_name:"+_host_name)
+            logger.info("_user_name:"+_user_name)
+            logger.info("_password:"+_password)
+
+            cls = func.__annotations__.get('return', SSH)
+#             print("get return class type: {}".format(cls))
+            logger.info("get return class type: {}".format(cls))
+            if issubclass(cls, SSH):
+#                 print("cls is subclass of SSH: {}".format(cls))
+                logger.info("cls is subclass of SSH: {}".format(cls))
+                actual_ssh_action = cls(_host_name, _user_name, _password, port)
+            else:
+#                 print("cls is not subclass of Database, will use Database: {}".format(cls))
+                logger.info("cls is not subclass of Database, will use Database: {}".format(cls))
+                actual_ssh_action = SSH(_host_name, _user_name, _password, port)
+#             print("new object is: {}".format(cls))
+#             actual_ssh_action = SSH(hostname, username, password, port)
+            object_des_dic = OrderedDict()
+            object_des_dic = copy.copy(key_word_args)
+            object_des_dic["object_name"]=func.__name__
+            actual_ssh_action.__setattr__("object_des", object_des_dic)
+            return func(args, actual_ssh_action, **kwargs)
+        return build_ssh_action_wrapper
+    return build_ssh_action_decorator
